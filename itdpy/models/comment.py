@@ -32,3 +32,5 @@ class Comment(ITDBaseModel):
 
     def __repr__(self) -> str:
         return f"<Comment {self.id}>"
+
+Comment.model_rebuild()
