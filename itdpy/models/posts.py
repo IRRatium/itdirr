@@ -1,18 +1,16 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
-
 from pydantic import Field, model_validator
 
 from .base import ITDBaseModel
 from .post import Post
+from .pagination import Pagination
 
 
 class Posts(ITDBaseModel):
     posts: list[Post] = Field(default_factory=list)
-    limit: int | None = None
-    next_cursor: str | None = Field(None, alias="nextCursor")
-    has_more: bool | None = Field(None, alias="hasMore")
+    pagination: Pagination | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -24,14 +22,9 @@ class Posts(ITDBaseModel):
             return {"posts": data}
 
         if isinstance(data, dict):
-            posts_list = data.get("posts") or data.get("items") or []
-            pagination = data.get("pagination", {})
-
             return {
-                "posts": posts_list,
-                "limit": pagination.get("limit"),
-                "nextCursor": pagination.get("nextCursor"),
-                "hasMore": pagination.get("hasMore"),
+                "posts": data.get("posts") or data.get("items") or [],
+                "pagination": data.get("pagination"),
             }
 
         return {"posts": []}
@@ -45,5 +38,5 @@ class Posts(ITDBaseModel):
     def __len__(self):
         return len(self.posts)
 
-    def __repr__(self) -> str:
-        return f"<Posts count={len(self)}>"
+    def __repr__(self):
+        return f"<Posts count={len(self.posts)}>"
