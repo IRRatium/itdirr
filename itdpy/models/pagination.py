@@ -7,6 +7,7 @@ class Pagination(ITDBaseModel):
     page: Optional[int] = 1
     limit: Optional[int] = 20
     total: Optional[int] = 0
+    next_cursor: Optional[int] = Field( 2, alias="nextCursor")
     has_more: Optional[bool] = Field(False, alias="hasMore")
 
     def __repr__(self) -> str:
