@@ -48,6 +48,15 @@ from .api import (
 )
 from .models import *
 
+class ClientInitResult:
+    def __init__(self, client=None, error=None):
+        self.client = client
+        self.error = error
+        self.success = client is not None
+
+    def __bool__(self):
+        return self.success
+
 class ITDClient:
     ######################################################
     ############  Низкоуровневые методы API #############№
@@ -59,10 +68,12 @@ class ITDClient:
     _SDK_VERSION = "0.3.2"
     _PLATFORM = "python"
 
-    def __init__(self, refresh_token: str, auto_auth: bool = True):
+    def __init__(self, refresh_token: str, auto_auth: bool = True, enable_retry: bool = True):
         self.base_url = "https://xn--d1ah4a.com"
         self.session = requests.Session()
 
+        self._auth_failed: bool = False
+        self._enable_retry = enable_retry
         self._access_token: str | None = None
         self._user_id: str | None = None
         self._auth_manager: Any = None
@@ -83,10 +94,16 @@ class ITDClient:
 
         self._apply_user_agent(initial=True)
         if auto_auth:
-            from .auth import AuthManager
             auth = AuthManager(self)
             self._bind_auth_manager(auth)
-            auth.refresh_access_token()
+
+            try:
+                refreshed = auth.refresh_access_token()
+                if not refreshed:
+                    self._auth_failed = True
+            except Exception:
+                self._auth_failed = True
+                print("⚠ Invalid refresh token")
 
     @property
     def access_token(self) -> str | None:
@@ -95,6 +112,10 @@ class ITDClient:
     @property
     def user_id(self) -> str | None:
         return self._user_id
+    
+    @property
+    def is_authenticated(self) -> bool:
+        return not self._auth_failed
 
     def _bind_auth_manager(self, auth_manager: Any) -> None:
         self._auth_manager = auth_manager
@@ -127,44 +148,46 @@ class ITDClient:
         path: str,
         *,
         retry: bool = True,
-        retries: int = 3,
-        **kwargs: Any
-    ) -> Response:
-
-        self._apply_user_agent()
-
+        retry_count: int = 0,
+        **kwargs
+    ):
         if not path.startswith("/"):
             path = f"/{path}"
 
         url = f"{self.base_url}{path}"
+        timeout = kwargs.pop("timeout", (5, 10))
 
-        timeout = kwargs.pop("timeout", None)
-        if timeout is None:
-            timeout = (
-                self._UPLOAD_TIMEOUT
-                if path.startswith("/api/files")
-                else self._DEFAULT_TIMEOUT
+        try:
+            response = self.session.request(method, url, timeout=timeout, **kwargs)
+        except requests.RequestException:
+            fake = requests.Response()
+            fake.status_code = 0
+            fake._content = b"Network error"
+            return fake
+
+        if response.status_code == 401 and retry and self._auth_manager:
+            refreshed = self._auth_manager.refresh_access_token()
+            if refreshed:
+                return self._request(method, path, retry=False, **kwargs)
+
+        if response.status_code == 429 and self._enable_retry:
+            if retry_count >= 3:
+                print("⚠ Rate limit max retries reached.")
+                return response
+
+            wait_time = random.uniform(1.5, 3.5)
+            print(f"⚠ Rate limited. Sleeping {wait_time:.2f}s")
+            time.sleep(wait_time)
+
+            return self._request(
+                method,
+                path,
+                retry=retry,
+                retry_count=retry_count + 1,
+                **kwargs
             )
 
-        attempt = 0
-
-        while True:
-            response = self.session.request(method, url, timeout=timeout, **kwargs)
-
-        
-            if response.status_code == 401 and retry and self._auth_manager:
-                refreshed = self._auth_manager.refresh_access_token()
-                if refreshed:
-                    retry = False
-                    continue
-
-            if response.status_code == 429 and attempt < retries:
-                print("Rate limit reached. Waiting 5 seconds...")
-                time.sleep(5)
-                attempt += 1
-                continue
-
-            return response
+        return response
 
     def get(self, path: str, **kwargs: Any) -> Response:
         return self._request("GET", path, **kwargs)
@@ -181,6 +204,47 @@ class ITDClient:
     def delete(self, path: str, **kwargs: Any) -> Response:
         return self._request("DELETE", path, **kwargs)
     
+    @classmethod
+    def create(cls, refresh_token: str):
+
+        client = cls(refresh_token, auto_auth=False, enable_retry=False)
+
+        auth = AuthManager(client)
+        client._bind_auth_manager(auth)
+
+        try:
+            refreshed = auth.refresh_access_token()
+        except Exception as e:
+            return ClientInitResult(
+                client=None,
+                error={
+                    "type": "auth_exception",
+                    "message": str(e),
+                }
+            )
+
+        if not refreshed:
+            return ClientInitResult(
+                client=None,
+                error={
+                    "type": "invalid_token",
+                    "message": "Invalid refresh token",
+                }
+            )
+
+        response = client.get("/api/users/me")
+
+        if response.status_code != 200:
+            return ClientInitResult(
+                client=None,
+                error={
+                    "type": "auth_failed",
+                    "status_code": response.status_code,
+                    "message": response.text or "Authentication failed",
+                }
+            )
+
+        return ClientInitResult(client=client)
 
     ######################################################
     ############  Высокоуровневые методы API #############
