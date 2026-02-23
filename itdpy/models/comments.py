@@ -29,3 +29,5 @@ class Comments(ITDBaseModel):
             return payload
 
         return {"comments": []}
+
+Comments.model_rebuild()
