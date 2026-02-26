@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union, Dict, Any
 from pydantic import Field
 from .user_lite import UserLite
 
@@ -14,4 +14,4 @@ class User(UserLite):
     is_followed_by: bool = Field(False, alias="isFollowedBy")
     created_at: Optional[str] = Field(None, alias="createdAt")
     online: bool = False
-    last_seen: Optional[str] = Field(None, alias="lastSeen")
+    last_seen: Optional[Union[str, Dict[str, Any]]] = Field(None, alias="lastSeen")
