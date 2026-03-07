@@ -14,17 +14,23 @@ class Comments(ITDBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_structure(cls, payload: Any) -> Any:
+    def normalize_structure(cls, payload: Any):
+
         if not isinstance(payload, dict):
             return {"comments": []}
 
+    # API возвращает data
+        if "data" in payload:
+            payload = payload["data"]
+
+    # replies endpoint
         if "replies" in payload:
             return {
                 "comments": payload.get("replies", []),
                 "pagination": payload.get("pagination"),
             }
 
-
+    # comments endpoint
         if "comments" in payload:
             return payload
 
