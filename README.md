@@ -6,7 +6,6 @@
 
 ![PyPI version](https://img.shields.io/pypi/v/itdpy)
 ![Downloads](https://static.pepy.tech/badge/itdpy)
-![Python](https://img.shields.io/pypi/pyversions/itdpy)
 ![License](https://img.shields.io/github/license/Gam5510/ITDpy)
 
 Python SDK для социальной сети итд.com.
