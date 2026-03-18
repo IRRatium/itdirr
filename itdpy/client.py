@@ -45,6 +45,11 @@ from .api import (
     update_notification_settings,
     update_privacy,
     get_trending_hashtags,
+    keep_online,
+    get_wall,
+    post_to_wall,
+    view_post,
+    view_posts,
 )
 from .models import *
 
