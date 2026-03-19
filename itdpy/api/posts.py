@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from ..models import Post, Posts, Poll, PostUpdate
 from ._common import build_query, normalize_id_list, truthy_response_status
@@ -105,8 +105,15 @@ def unlike_post(client, post_id: str) -> bool:
 
 
 def repost_post(client, post_id: str, content: str | None = None) -> bool:
-    payload = {"content": content} if content is not None else None
-    response = client.post(f"/api/posts/{post_id}/repost", json=payload)
+    # API требует непустой content — подставляем пробел если не передан
+    if content is None:
+        content = " "
+
+    payload = {"content": content}
+    response = client.post(
+        f"/api/posts/{post_id}/repost",
+        json=payload
+    )
 
     body = None
     try:
