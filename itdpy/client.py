@@ -6,6 +6,7 @@ import random
 import requests
 from requests import Response
 from .auth import AuthManager
+from .exceptions import NotVerifiedException
 from .api import (
     create_post, 
     delete_post, 
@@ -50,6 +51,7 @@ from .api import (
     post_to_wall,
     view_post,
     view_posts,
+    get_portal,
 )
 from .models import *
 
@@ -70,7 +72,7 @@ class ITDClient:
     _DEFAULT_TIMEOUT = 15
     _UPLOAD_TIMEOUT = 3600
     _SDK_NAME = "itdpy"
-    _SDK_VERSION = "0.3.2"
+    _SDK_VERSION = "0.7.1"
     _PLATFORM = "python"
 
     def __init__(self, refresh_token: str, auto_auth: bool = True, enable_retry: bool = True):
@@ -169,6 +171,18 @@ class ITDClient:
             fake.status_code = 0
             fake._content = b"Network error"
             return fake
+
+        # Проверка верификации телефона
+        if response.status_code == 403:
+            try:
+                body = response.json()
+                error = body.get("error", {})
+                if error.get("code") == "PHONE_VERIFICATION_REQUIRED":
+                    raise NotVerifiedException(self._user_id)
+            except NotVerifiedException:
+                raise
+            except Exception:
+                pass
 
         if response.status_code == 401 and retry and self._auth_manager:
             refreshed = self._auth_manager.refresh_access_token()
@@ -424,7 +438,7 @@ class ITDClient:
     def get_trending_hashtags(self, limit: int = 10):
         return get_trending_hashtags(self, limit)
 
-    # --- Новые методы IRR-ITDpy ---
+    # --- Методы IRRatium ---
 
     def keep_online(self, on_event=None, background: bool = True):
         """
@@ -468,3 +482,26 @@ class ITDClient:
             client.set_username("mynewname42")
         """
         return self.update_profile(username=username)
+
+    def get_portal(self) -> Portal:
+        """
+        Получить информацию о текущем ивенте на платформе.
+
+        Пример:
+            portal = client.get_portal()
+            if portal.active:
+                print(f"Идёт ивент: {portal.title}")
+                print(f"Ссылка: {portal.url}")
+        """
+        return get_portal(self)
+
+    def get_verification_link(self) -> str:
+        """
+        Получить ссылку для верификации аккаунта через Telegram.
+
+        Пример:
+            link = client.get_verification_link()
+            print("Верифицируй аккаунт:", link)
+        """
+        user_id = self._user_id or self.get_me().id
+        return f"https://t.me/itd_verification_bot?start={user_id}"
