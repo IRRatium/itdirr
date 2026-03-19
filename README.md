@@ -1,7 +1,7 @@
 # itdirr
 
 <p align="center">
-  <img src="https://i.postimg.cc/gJ9z8RDk/ITDpy-(1)-pixian-ai.png" width="700">
+  <img src="https://i.ibb.co/mCKgdLVX/itdirr.png" width="700">
 </p>
 
 <p align="center">
