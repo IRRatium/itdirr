@@ -21,6 +21,9 @@
 | Стена (`get_wall`, `post_to_wall`) | ❌ | ✅ |
 | Просмотры постов (`view_post`) | ❌ | ✅ |
 | Смена юзернейма (`set_username`) | ❌ | ✅ |
+| Ивенты (`get_portal`) | ❌ | ✅ |
+| Верификация (`get_verification_link`) | ❌ | ✅ |
+| Ошибка верификации (`NotVerifiedException`) | ❌ | ✅ |
 | Посты, комментарии, уведомления | ✅ | ✅ |
 | Пины, опросы, настройки | ✅ | ✅ |
 | Поиск, дискавери | ✅ | ✅ |
@@ -43,6 +46,7 @@
 - [Online](online.md)
 - [Pins](pins.md)
 - [Polls](polls.md)
+- [Portal](portal.md)
 - [Posts](posts.md)
 - [Profile](profile.md)
 - [Settings](settings.md)
@@ -64,6 +68,7 @@
 - [Pagination](models/pagination.md)
 - [Pins](models/pins.md)
 - [Poll](models/poll.md)
+- [Portal](models/portal.md)
 - [Post](models/post.md)
 - [Posts](models/posts.md)
 - [Settings](models/settings.md)
@@ -80,18 +85,31 @@
 - Строгая типизация и валидация данных
 - Загрузка файлов
 - HTML форматирование текста
+- Информация о текущих ивентах платформы
+- Автоматическая обработка ошибки верификации
 
 ## Пример использования
 ```python
-from itdpy import ITDClient
+from itdpy import ITDClient, NotVerifiedException
 
 client = ITDClient(refresh_token="your_refresh_token")
 
 me = client.get_me()
 print(me.username)
 
+# Текущий ивент
+portal = client.get_portal()
+if portal.active:
+    print(f"Идёт ивент: {portal.title} — {portal.url}")
+
 # Держать статус онлайн
 client.keep_online()
+
+# Автоматическая обработка верификации
+try:
+    client.create_post("Привет!")
+except NotVerifiedException as e:
+    print(e.verification_link)
 ```
 
 ## Архитектура
