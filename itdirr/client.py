@@ -185,7 +185,7 @@ class ITDClient:
             except Exception:
                 pass
 
-        if response.status_code == 401 and retry and self._auth_manager:
+        if response.status_code == 401 and retry and self._auth_manager and "/auth/refresh" not in path:
             refreshed = self._auth_manager.refresh_access_token()
             if refreshed:
                 return self._request(method, path, retry=False, **kwargs)
