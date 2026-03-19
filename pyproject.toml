@@ -18,6 +18,9 @@ dependencies = [
   "requests>=2.28.0"
 ]
 
+[tool.setuptools]
+packages = ["itdirr"]
+
 [project.urls]
 Homepage = "https://github.com/IRRatium/itdirr"
 Repository = "https://github.com/IRRatium/itdirr"
