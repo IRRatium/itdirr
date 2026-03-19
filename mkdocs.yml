@@ -8,20 +8,22 @@ repo_url: https://github.com/IRRatium/itdirr
 theme:
   name: material
   favicon: assets/favicon.png
+  custom_dir: docs/overrides
   palette:
-    - scheme: default
-      primary: blue
-      accent: blue
-      toggle:
-        icon: material/weather-night
-        name: Dark mode
-
     - scheme: slate
-      primary: blue
-      accent: blue
-      toggle:
-        icon: material/weather-sunny
-        name: Light mode
+      primary: custom
+      accent: custom
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - content.code.copy
+
+extra_css:
+  - stylesheets/irring.css
 
 nav:
   - Home: index.md
